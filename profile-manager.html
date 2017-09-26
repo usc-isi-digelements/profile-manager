@@ -1,0 +1,685 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../array-behavior/array-behavior.html">
+<link rel="import" href="../build-and-run-query/build-and-run-query.html">
+<link rel="import" href="../elastic-create/elastic-create.html">
+<link rel="import" href="../elastic-update/elastic-update.html">
+<link rel="import" href="../lodash-import/lodash.html">
+<link rel="import" href="../query-builder/query-builder.html">
+
+<!--
+A Polymer Element that managers user profiles saved in elasticsearch.
+
+### Example
+```js
+var buildSearchStateFunction = function(searchParameters) {
+  return {
+    field1: searchParameters.field1 || [],
+    field2: searchParameters.field2 || []
+  };
+};
+
+var queryBuilderCallback = {
+  dates: function(list) {
+    return list;
+  },
+  terms: function(list) {
+    return list;
+  }
+};
+
+var queryBuilderConfig = {
+  field1: {
+    field: 'testField1'
+  },
+  field2: {
+    field: 'testField2'
+  }
+};
+
+var searchParameters = {
+  field1: ['value1'],
+  field2: ['value2', 'value3', 'value4']
+};
+```
+
+```html
+<profile-manager
+  build-search-state-function="[[buildSearchStateFunction]]"
+  client="[[client]]"
+  index-name="dig-profiles"
+  index-type="profile"
+  query-builder-callback="[[queryBuilderCallback]]"
+  query-builder-config="[[queryBuilderConfig]]"
+  search-parameters="[[searchParameters]]"
+  username="user-1234"
+  blur-images="{{blurImages}}"
+  cases="{{cases}}"
+  email-address="{{emailAddress}}"
+  notifications="{{notifications}}"
+  notification-interval="{{notificationInterval}}"
+  profile-manager="{{profileManager}}"
+  user-id="{{userId}}"
+  user-loading="{{userLoading}}">
+</profile-manager>
+```
+
+@demo demo/index.html
+-->
+
+<dom-module id="profile-manager">
+  <template>
+    <style>
+    </style>
+
+    <query-builder
+      callback="[[queryBuilderCallback]]"
+      config="[[queryBuilderConfig]]"
+      data="[[searchParameters]]"
+      query="{{_search}}">
+    </query-builder>
+
+    <build-and-run-query id="userQuery"
+      raw
+      fields='"username"'
+      values="[[username]]"
+      client="[[client]]"
+      index-name="[[indexName]]"
+      index-types="[[buildArray(indexType)]]"
+      aggregations="[]"
+      filters="[]"
+      loading="{{userLoading}}"
+      results="{{_userSearchResult}}">
+    </build-and-run-query>
+
+    <elastic-create
+      client="[[client]]"
+      index="[[indexName]]"
+      elastic-type="[[indexType]]"
+      body="{{_userCreateBody}}"
+      results="{{_userCreateResult}}"
+      last-error="{{createError}}">
+    </elastic-create>
+
+    <elastic-update
+      id="[[userId]]"
+      client="[[client]]"
+      index="[[indexName]]"
+      elastic-type="[[indexType]]"
+      body="[[_userUpdateBody]]"
+      results="{{_userUpdateResult}}"
+      last-error="{{updateError}}">
+    </elastic-update>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      /* globals _, DigBehaviors */
+      is: 'profile-manager',
+
+      behaviors: [
+        DigBehaviors.ArrayBehavior
+      ],
+
+      properties: {
+        /**
+         * (Optional|Output)
+         *
+         * Whether to blur images for the user.
+         *
+         * @type {Boolean}
+         */
+        blurImages: {
+          notify: true,
+          observer: '_updateBlurImages',
+          type: Boolean
+        },
+
+        /**
+         * (Required)
+         *
+         * The function to build the `searchParameters` from the saved search state object.  Arguments:  {Object} stateObject
+         *
+         * @type {Object}
+         */
+        buildSearchStateFunction: {
+          type: Object
+        },
+
+        /**
+         * (Optional|Output)
+         *
+         * The saved cases for the user.
+         *
+         * @type {Array}
+         */
+        cases: {
+          notify: true,
+          observer: '_updateCases',
+          type: Array
+        },
+
+        /**
+         * (Required)
+         *
+         * The elasticsearch client object.
+         *
+         * @type {Object}
+         */
+        client: {
+          type: Object
+        },
+
+        /**
+         * (Optional|Output)
+         *
+         * The email address for the user.
+         *
+         * @type {String}
+         */
+        emailAddress: {
+          notify: true,
+          observer: '_updateEmailAddress',
+          type: String
+        },
+
+        /**
+         * (Required)
+         *
+         * The elasticsearch user index name.
+         *
+         * @type {String}
+         */
+        indexName: {
+          type: String
+        },
+
+        /**
+         * (Required)
+         *
+         * The elasticsearch user index type.
+         *
+         * @type {String}
+         */
+        indexType: {
+          type: String
+        },
+
+        /**
+         * (Output)
+         *
+         * Whether the user has notifications.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        notifications: {
+          notify: true,
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * (Optional|Output)
+         *
+         * The notification interval for the user.
+         *
+         * @type {String}
+         */
+        notificationInterval: {
+          notify: true,
+          observer: '_updateNotificationInterval',
+          type: String
+        },
+
+        /**
+         * (Output)
+         *
+         * The  profile manager object with the following callbacks:
+         * - `reloadUser`
+         * - `saveSearch`
+         *
+         * @type {Object}
+         */
+        profileManager: {
+          notify: true,
+          type: Object,
+          value: function() {
+            return this._createProfileManager();
+          }
+        },
+
+        /**
+         * (Required)
+         *
+         * The callback for the `query-builder`.
+         *
+         * @type {Object}
+         */
+        queryBuilderCallback: {
+          type: Object
+        },
+
+        /**
+         * (Required)
+         *
+         * The config for the `query-builder`.
+         *
+         * @type {Object}
+         */
+        queryBuilderConfig: {
+          type: Object
+        },
+
+        /**
+         * (Required)
+         *
+         * The search parameters.
+         *
+         * @type {Object}
+         */
+        searchParameters: {
+          type: Object
+        },
+
+        /**
+         * (Required)
+         *
+         * The name of the user.
+         *
+         * @type {String}
+         */
+        username: {
+          type: String
+        },
+
+        /**
+         * (Required)
+         *
+         * The unique ID of the user.
+         *
+         * @type {String}
+         */
+        userId: {
+          notify: true,
+          type: String
+        },
+
+        /**
+         * (Output)
+         *
+         * Whether the user profile is loading.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        userLoading: {
+          notify: true,
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * The callbacks to run after the user profile query is run.
+         *
+         * @type {Array}
+         * @default []
+         * @private
+         */
+        _callbacks: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * The elasticsearch query object for the given `searchParameters`.
+         *
+         * @param {Object}
+         * @private
+         */
+        _search: {
+          type: Object
+        },
+
+        /**
+         * Whether to let the observer functions run.
+         *
+         * @type {Boolean}
+         * @default false
+         * @private
+         */
+        _stopObservers: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * The request body for creating the user.
+         *
+         * @type {Object}
+         * @private
+         */
+        _userCreateBody: {
+          type: Object
+        },
+
+        /**
+         * The result from creating the user.
+         *
+         * @type {Object}
+         * @private
+         */
+        _userCreateResult: {
+          observer: '_findUserId',
+          type: Object
+        },
+
+        /**
+         * The result from searching for the user.
+         *
+         * @type {Object}
+         * @private
+         */
+        _userSearchResult: {
+          observer: '_findUserData',
+          type: Object
+        },
+
+        /**
+         * The request body for updating the user.
+         *
+         * @type {Object}
+         * @private
+         */
+        _userUpdateBody: {
+          type: Object
+        },
+
+        /**
+         * The result from updating the user.
+         *
+         * @type {Object}
+         * @private
+         */
+        _userUpdateResult: {
+          type: Object
+        }
+      },
+
+      observers: [
+        '_createUser(userId, username)',
+        '_updateCases(cases.splices)'
+      ],
+
+      /**
+       * Creates and returns the `profileManager` object.
+       *
+       * @return {Object}
+       * @private
+       */
+      _createProfileManager: function() {
+        var self = this;
+        return {
+          reloadUser: function(callback) {
+            self._callbacks.push(callback);
+            if(self.client) {
+              self.$$('#userQuery').runQuery();
+            }
+          },
+          saveSearch: function(caseName) {
+            var callback = function() {
+              var index = _.findIndex(self.cases, function(caseObject) {
+                return caseObject.name === caseName;
+              });
+              if(index >= 0) {
+                var caseObject = _.cloneDeep(self.cases[index]);
+                caseObject.searches.push(self._createSearch(self._search, self.searchParameters, self.buildSearchStateFunction));
+                // Use splice to run observers.
+                self.splice('cases', index, 1, caseObject);
+              } else {
+                self.push('cases', self._createCase(caseName, null, self._createSearch(self._search, self.searchParameters, self.buildSearchStateFunction)));
+              }
+            };
+            self._callbacks.push(callback);
+            if(self.client) {
+              self.$$('#userQuery').runQuery();
+            }
+          }
+        };
+      },
+
+      /**
+       * Creates and returns a new case object.
+       *
+       * @param {String} caseName
+       * @param {Object} entity
+       * @param {Object} search
+       * @return {Object}
+       * @private
+       */
+      _createCase: function(caseName, entity, search) {
+        return {
+          name: caseName,
+          entities: entity ? [entity] : [],
+          searches: search ? [search] : [],
+          sendEmailAlert: true
+        };
+      },
+
+      /**
+       * Creates and returns a new search object.
+       *
+       * @param {Object} search
+       * @param {Object} searchParameters
+       * @param {Function} buildSearchStateFunction
+       * @return {Object}
+       * @private
+       */
+      _createSearch: function(search, searchParameters, buildSearchStateFunction) {
+        var date = new Date();
+        return {
+          esState: search ? JSON.stringify(search.toJSON()) : undefined,
+          lastAutomatedRun: date,
+          lastViewedByUser: date,
+          notify: false,
+          uiState: JSON.stringify(buildSearchStateFunction && searchParameters ? buildSearchStateFunction(searchParameters) : {})
+        };
+      },
+
+      /**
+       * Creates a new user in elasticsearch if the given userId is null using the given username and the global `blurImages`, `emailAddress`, and `notificationInterval`.
+       *
+       * @param {String} userId
+       * @param {String} username
+       * @private
+       */
+      _createUser: function(userId, username) {
+        // Do not check for undefined.
+        if(userId === null && username) {
+          this._stopObservers = true;
+          this.blurImages = this.blurImages || false;
+          this.emailAddress = this.emailAddress || '';
+          this.notificationInterval = this.notificationInterval || 'never';
+          this._stopObservers = false;
+
+          this.set('_userCreateBody', {
+            username: username,
+            blurImages: this.blurImages,
+            emailAddress: this.emailAddress,
+            notificationInterval: this.notificationInterval
+          });
+        }
+      },
+
+      /**
+       * Finds the user ID and data from the given search results and runs the `_callbacks`.
+       *
+       * @param {Object} userSearchResult
+       */
+      _findUserData: function(userSearchResult) {
+        if(userSearchResult) {
+          if(userSearchResult && userSearchResult.hits.hits.length > 0) {
+            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+            this._findUserId(userSearchResult.hits.hits[0]);
+            this._stopObservers = true;
+            this._updateUserData(userSearchResult.hits.hits[0]._source);
+            this._stopObservers = false;
+            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+          } else {
+            this.userId = null;
+          }
+
+          this._runCallbacks();
+        }
+      },
+
+      /**
+       * Sets the `userId` using the given elasticsearch user data.
+       *
+       * @param {Object} user
+       * @private
+       */
+      _findUserId: function(user) {
+        if(user && user._id) {
+          this.userId = user._id;
+        }
+      },
+
+      /**
+       * Runs the `_callbacks`.
+       *
+       * @private
+       */
+      _runCallbacks: function() {
+        if(this._callbacks.length) {
+          var callback = this._callbacks.shift();
+          callback();
+          this._runCallbacks();
+        }
+      },
+
+      /**
+       * Updates the `blurImages` setting for the user in elasticsearch.
+       *
+       * @private
+       */
+      _updateBlurImages: function() {
+        if(this._stopObservers) {
+          return;
+        }
+
+        var self = this;
+        this.set('_userUpdateBody', {
+          doc: {
+            blurImages: self.blurImages
+          }
+        });
+      },
+
+      /**
+       * Updates the `cases` for the user in elasticsearch.
+       *
+       * @private
+       */
+      _updateCases: function() {
+        if(this._stopObservers) {
+          return;
+        }
+
+        var self = this;
+        this.set('_userUpdateBody', {
+          doc: {
+            cases: self.cases
+          }
+        });
+      },
+
+      /**
+       * Updates the `emailAddress` setting for the user in elasticsearch.
+       *
+       * @private
+       */
+      _updateEmailAddress: function() {
+        if(this._stopObservers) {
+          return;
+        }
+
+        var self = this;
+        this.set('_userUpdateBody', {
+          doc: {
+            emailAddress: self.emailAddress
+          }
+        });
+      },
+
+      /**
+       * Updates the `notificationInterval` setting for the user in elasticsearch.
+       *
+       * @private
+       */
+      _updateNotificationInterval: function() {
+        if(this._stopObservers) {
+          return;
+        }
+
+        var self = this;
+        this.set('_userUpdateBody', {
+          doc: {
+            notificationInterval: self.notificationInterval
+          }
+        });
+      },
+
+      /**
+       * Sets the properties using the given elasticsearch user data.
+       *
+       * @param {Object} user
+       * @private
+       */
+      _updateUserData: function(user) {
+        this.set('blurImages', user.blurImages || false);
+
+        if(user.emailAddress) {
+          this.set('emailAddress', user.emailAddress);
+        }
+
+        if(user.notificationInterval) {
+          this.set('notificationInterval', user.notificationInterval);
+        }
+
+        if(user.cases) {
+          var self = this;
+          user.cases.forEach(function(caseObject) {
+            caseObject.searches.forEach(function(searchObject) {
+              if(searchObject.notify) {
+                self.set('notifications', true);
+              }
+            })
+          });
+          this.set('cases', user.cases);
+        }
+      }
+    });
+  })();
+  </script>
+</dom-module>

@@ -1,0 +1,861 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!doctype html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../web-component-tester/browser.js"></script>
+  <link rel="import" href="../profile-manager.html">
+</head>
+
+<body>
+  <test-fixture id="profile-manager-fixture">
+    <template>
+      <profile-manager></profile-manager>
+    </template>
+  </test-fixture>
+
+  <script>
+    /* globals suite, setup, fixture, flush, test, assert */
+    /* jshint -W030 */
+    suite('profile-manager tests', function() {
+      var element;
+
+      setup(function(done) {
+        element = fixture('profile-manager-fixture');
+        element.buildSearchStateFunction = function(searchParameters) {
+          return {
+            field1: searchParameters.field1 || [],
+            field2: searchParameters.field2 || []
+          };
+        };
+        element.queryBuilderCallback = {
+          dates: function(list) {
+            return list;
+          },
+          terms: function(list) {
+            return list;
+          }
+        };
+        element.queryBuilderConfig = {
+          field1: {
+            field: 'testField1'
+          },
+          field2: {
+            field: 'testField2'
+          }
+        };
+        element.indexName = 'testIndexName';
+        element.indexType = 'testIndexType';
+        element.searchParameters = {
+          field1: ['value1'],
+          field2: ['value2', 'value3', 'value4']
+        };
+        element.username = 'testUser';
+        flush(done);
+      });
+
+      test('properties are the correct values', function() {
+        assert.isFunction(element.buildSearchStateFunction);
+        assert.equal(element.indexName, 'testIndexName');
+        assert.equal(element.indexType, 'testIndexType');
+        assert.isFunction(element.queryBuilderCallback.dates);
+        assert.isFunction(element.queryBuilderCallback.terms);
+        assert.deepEqual(element.queryBuilderConfig, {
+          field1: {
+            field: 'testField1'
+          },
+          field2: {
+            field: 'testField2'
+          }
+        });
+        assert.deepEqual(element.searchParameters, {
+          field1: ['value1'],
+          field2: ['value2', 'value3', 'value4']
+        });
+        assert.equal(element.username, 'testUser');
+
+        assert.isFalse(element.notifications);
+        assert.isFalse(element.userLoading);
+        assert.deepEqual(element._callbacks, []);
+        assert.isFalse(element._stopObservers);
+
+        assert.isUndefined(element.blurImages);
+        assert.isUndefined(element.cases);
+        assert.isUndefined(element.emailAddress);
+        assert.isUndefined(element.notificationInterval);
+        assert.isUndefined(element.userId);
+        assert.isUndefined(element._userCreateBody);
+        assert.isUndefined(element._userUpdateBody);
+        assert.isNull(element._userCreateResult);
+        assert.isNull(element._userSearchResult);
+        assert.isNull(element._userUpdateResult);
+
+        assert.deepEqual(element._search.toJSON(), {
+          bool: {
+            must: [{
+              match: {
+                testField1: {
+                  query: 'value1'
+                }
+              }
+            }, {
+              bool: {
+                minimum_number_should_match: 1,
+                should: [{
+                  match: {
+                    testField2: {
+                      query: 'value2'
+                    }
+                  }
+                }, {
+                  match: {
+                    testField2: {
+                      query: 'value3'
+                    }
+                  }
+                }, {
+                  match: {
+                    testField2: {
+                      query: 'value4'
+                    }
+                  }
+                }]
+              }
+            }]
+          }
+        });
+      });
+
+      test('profileManager is as expected', function() {
+        assert.isObject(element.profileManager);
+        assert.isFunction(element.profileManager.reloadUser);
+        assert.isFunction(element.profileManager.saveSearch);
+      });
+
+      test('does have query-builder element', function() {
+        assert(element.$$('query-builder'));
+        assert.isFunction(element.$$('query-builder').callback.dates);
+        assert.isFunction(element.$$('query-builder').callback.terms);
+        assert.deepEqual(element.$$('query-builder').config, {
+          field1: {
+            field: 'testField1'
+          },
+          field2: {
+            field: 'testField2'
+          }
+        });
+        assert.deepEqual(element.$$('query-builder').data, {
+          field1: ['value1'],
+          field2: ['value2', 'value3', 'value4']
+        });
+        assert.deepEqual(element.$$('query-builder').query.toJSON(), {
+          bool: {
+            must: [{
+              match: {
+                testField1: {
+                  query: 'value1'
+                }
+              }
+            }, {
+              bool: {
+                minimum_number_should_match: 1,
+                should: [{
+                  match: {
+                    testField2: {
+                      query: 'value2'
+                    }
+                  }
+                }, {
+                  match: {
+                    testField2: {
+                      query: 'value3'
+                    }
+                  }
+                }, {
+                  match: {
+                    testField2: {
+                      query: 'value4'
+                    }
+                  }
+                }]
+              }
+            }]
+          }
+        });
+      });
+
+      test('does have build-and-run-query element', function() {
+        assert(element.$$('build-and-run-query'));
+        assert.isTrue(element.$$('build-and-run-query').raw);
+        assert.equal(element.$$('build-and-run-query').fields, 'username');
+        assert.equal(element.$$('build-and-run-query').values, 'testUser');
+        assert.equal(element.$$('build-and-run-query').indexName, 'testIndexName');
+        assert.deepEqual(element.$$('build-and-run-query').indexTypes, ['testIndexType']);
+        assert.deepEqual(element.$$('build-and-run-query').aggregations, []);
+        assert.deepEqual(element.$$('build-and-run-query').filters, []);
+        assert.isNull(element.$$('build-and-run-query').results);
+      });
+
+      test('does have elastic-create element', function() {
+        assert(element.$$('elastic-create'));
+        assert.equal(element.$$('elastic-create').index, 'testIndexName');
+        assert.equal(element.$$('elastic-create').elasticType, 'testIndexType');
+      });
+
+      test('does have elastic-update element', function() {
+        assert(element.$$('elastic-update'));
+        assert.equal(element.$$('elastic-update').index, 'testIndexName');
+        assert.equal(element.$$('elastic-update').elasticType, 'testIndexType');
+      });
+
+      test('_createCase does return as expected', function() {
+        assert.deepEqual(element._createCase('testName'), {
+          name: 'testName',
+          entities: [],
+          searches: [],
+          sendEmailAlert: true
+        });
+
+        assert.deepEqual(element._createCase('testName', 'testEntity', 'testSearch'), {
+          name: 'testName',
+          entities: ['testEntity'],
+          searches: ['testSearch'],
+          sendEmailAlert: true
+        });
+      });
+
+      test('_createSearch does return as expected', function() {
+        var search1 = element._createSearch();
+        assert.isUndefined(search1.esState);
+        assert.typeOf(search1.lastAutomatedRun, 'date');
+        assert.typeOf(search1.lastViewedByUser, 'date');
+        assert.isFalse(search1.notify);
+        assert.equal(search1.uiState, '{}');
+
+        var called = false;
+        var search2 = element._createSearch({
+          toJSON: function() {
+            return {
+              key1: 'value1'
+            };
+          }
+        }, {
+          key2: 'value2'
+        }, function(searchParameters) {
+          called = true;
+          assert.deepEqual(searchParameters, {
+            key2: 'value2'
+          });
+          return {
+            key3: 'value3'
+          };
+        });
+        assert.isTrue(called);
+        assert.equal(search2.esState, '{\"key1\":\"value1\"}');
+        assert.typeOf(search2.lastAutomatedRun, 'date');
+        assert.typeOf(search2.lastViewedByUser, 'date');
+        assert.isFalse(search2.notify);
+        assert.equal(search2.uiState, '{\"key3\":\"value3\"}');
+      });
+
+      test('_createUser does set _userCreateBody if userId is null', function() {
+        element._createUser(null, 'myUser');
+
+        assert.deepEqual(element._userCreateBody, {
+          username: 'myUser',
+          blurImages: false,
+          emailAddress: '',
+          notificationInterval: 'never'
+        });
+      });
+
+      test('_createUser does set _userCreateBody if userId is null with global properties', function() {
+        element.blurImages = true;
+        element.emailAddress = 'abc@xyz.com';
+        element.notificationInterval = 'weekly';
+        element._createUser(null, 'myUser');
+
+        assert.deepEqual(element._userCreateBody, {
+          username: 'myUser',
+          blurImages: true,
+          emailAddress: 'abc@xyz.com',
+          notificationInterval: 'weekly'
+        });
+      });
+
+      test('_createUser does not set _userCreateBody if userId is defined', function() {
+        element._createUser('1234', 'myUser');
+        assert.isUndefined(element._userCreateBody);
+      });
+
+      test('_createUser does not set _userCreateBody if userId is undefined', function() {
+        element._createUser(undefined, 'myUser');
+        assert.isUndefined(element._userCreateBody);
+      });
+
+      test('_findUserData does set userId to null and _userCreateBody if hits is empty', function() {
+        element._findUserData({
+          hits: {
+            hits: []
+          }
+        });
+
+        assert.isNull(element.userId);
+        assert.deepEqual(element._userCreateBody, {
+          username: 'testUser',
+          blurImages: false,
+          emailAddress: '',
+          notificationInterval: 'never'
+        });
+      });
+
+      test('_findUserData does set userId and user data properties if hits is not empty', function() {
+        element._findUserData({
+          hits: {
+            hits: [{
+              _id: '1234',
+              _source: {
+                blurImages: true,
+                cases: [{
+                  searches: [{
+                    notify: true
+                  }]
+                }],
+                emailAddress: 'abc@xyz.com',
+                notificationInterval: 'weekly'
+              }
+            }]
+          }
+        });
+
+        assert.equal(element.userId, '1234');
+        assert.isTrue(element.blurImages);
+        assert.deepEqual(element.cases, [{
+          searches: [{
+            notify: true
+          }]
+        }]);
+        assert.equal(element.emailAddress, 'abc@xyz.com');
+        assert.isTrue(element.notifications);
+        assert.equal(element.notificationInterval, 'weekly');
+      });
+
+      test('_findUserData does run callbacks', function() {
+        var calls = 0;
+        var called1 = false;
+        var called2 = false;
+        element._callbacks.push(function() {
+          assert.equal(calls, 0);
+          assert.isFalse(called1);
+          calls++;
+          called1 = true;
+        });
+        element._callbacks.push(function() {
+          assert.equal(calls, 1);
+          assert.isFalse(called2);
+          calls++;
+          called2 = true;
+        });
+
+        element._findUserData({
+          hits: {
+            hits: []
+          }
+        });
+        assert.equal(calls, 2);
+        assert.isTrue(called1);
+        assert.isTrue(called2);
+        assert.deepEqual(element._callbacks, []);
+      });
+
+      test('_findUserData does stop observer functions', function() {
+        assert.isUndefined(element._userUpdateBody);
+
+        element._findUserData({
+          hits: {
+            hits: [{
+              _id: '1234',
+              _source: {
+                blurImages: true,
+                cases: [{
+                  searches: [{
+                    notify: true
+                  }]
+                }],
+                emailAddress: 'abc@xyz.com',
+                notificationInterval: 'weekly'
+              }
+            }]
+          }
+        });
+
+        assert.isUndefined(element._userUpdateBody);
+      });
+
+      test('_findUserId does set userId if user data is valid', function() {
+        element._findUserId({
+          _id: '1234'
+        });
+        assert.equal(element.userId, '1234');
+
+        element._findUserId({
+          _id: '5678'
+        });
+        assert.equal(element.userId, '5678');
+      });
+
+      test('_findUserId does not set userId if user data is empty', function() {
+        element._findUserId();
+        assert.isUndefined(element.userId);
+
+        element._findUserId({});
+        assert.isUndefined(element.userId);
+      });
+
+      test('_runCallbacks does run all callbacks', function() {
+        var calls = 0;
+        var called1 = false;
+        var called2 = false;
+        element._callbacks.push(function() {
+          assert.equal(calls, 0);
+          assert.isFalse(called1);
+          calls++;
+          called1 = true;
+        });
+        element._callbacks.push(function() {
+          assert.equal(calls, 1);
+          assert.isFalse(called2);
+          calls++;
+          called2 = true;
+        });
+
+        element._runCallbacks();
+        assert.equal(calls, 2);
+        assert.isTrue(called1);
+        assert.isTrue(called2);
+        assert.deepEqual(element._callbacks, []);
+      });
+
+      test('_updateUserData does set blurImages to false', function() {
+        element._updateUserData({});
+        assert.isFalse(element.blurImages);
+
+        element._updateUserData({
+          blurImages: false
+        });
+        assert.isFalse(element.blurImages);
+      });
+
+      test('_updateUserData does set blurImages to true', function() {
+        element._updateUserData({
+          blurImages: true
+        });
+        assert.isTrue(element.blurImages);
+      });
+
+      test('_updateUserData does set cases', function() {
+        element._updateUserData({
+          cases: [{
+            searches: [{
+              notify: false
+            }]
+          }]
+        });
+
+        assert.deepEqual(element.cases, [{
+          searches: [{
+            notify: false
+          }]
+        }]);
+        assert.isFalse(element.notifications);
+      });
+
+      test('_updateUserData does set emailAddress', function() {
+        element._updateUserData({
+          emailAddress: 'abc@xyz.com'
+        });
+        assert.equal(element.emailAddress, 'abc@xyz.com');
+      });
+
+      test('_updateUserData does set notificationInterval', function() {
+        element._updateUserData({
+          notificationInterval: 'weekly'
+        });
+        assert.equal(element.notificationInterval, 'weekly');
+      });
+
+      test('_updateUserData does set notifications', function() {
+        element._updateUserData({
+          cases: [{
+            searches: [{
+              notify: true
+            }]
+          }]
+        });
+
+        assert.deepEqual(element.cases, [{
+          searches: [{
+            notify: true
+          }]
+        }]);
+        assert.isTrue(element.notifications);
+      });
+
+      test('_updateUserData does work with multiple properties', function() {
+        element._updateUserData({
+          blurImages: true,
+          cases: [{
+            searches: [{
+              notify: true
+            }]
+          }],
+          emailAddress: 'abc@xyz.com',
+          notificationInterval: 'weekly'
+        });
+
+        assert.isTrue(element.blurImages);
+        assert.deepEqual(element.cases, [{
+          searches: [{
+            notify: true
+          }]
+        }]);
+        assert.equal(element.emailAddress, 'abc@xyz.com');
+        assert.equal(element.notificationInterval, 'weekly');
+        assert.isTrue(element.notifications);
+      });
+
+      test('does have buildArray function', function() {
+        assert.isFunction(element.buildArray);
+        assert.deepEqual(element.buildArray('1234'), ['1234']);
+      });
+
+      test('profileManager.reloadUser does add callback', function() {
+        element.profileManager.reloadUser('testCallback');
+        assert.deepEqual(element._callbacks, ['testCallback']);
+      });
+
+      test('profileManager.saveSearch does add callback', function() {
+        element.profileManager.saveSearch();
+        assert.equal(element._callbacks.length, 1);
+        assert.isFunction(element._callbacks[0]);
+      });
+
+      test('profileManager.saveSearch callback does add to cases', function() {
+        element.cases = [{
+          name: 'testCase1',
+          entities: [],
+          searches: [{
+            key: 'value'
+          }],
+          sendEmailAlert: false
+        }];
+
+        element.profileManager.saveSearch('testCase2');
+        element._callbacks[0]();
+
+        assert.equal(element.cases.length, 2);
+        assert.equal(element.cases[0].name, 'testCase1');
+        assert.deepEqual(element.cases[0].entities, []);
+        assert.isFalse(element.cases[0].sendEmailAlert);
+        assert.deepEqual(element.cases[0].searches[0], {
+          key: 'value'
+        });
+
+        assert.equal(element.cases[1].name, 'testCase2');
+        assert.deepEqual(element.cases[1].entities, []);
+        assert.isTrue(element.cases[1].sendEmailAlert);
+        assert.equal(element.cases[1].searches.length, 1);
+        assert.equal(element.cases[1].searches[0].esState, '{"bool":{"must":[{"match":{"testField1":{"query":"value1"}}},{"bool":{"minimum_number_should_match":1,"should":[{"match":{"testField2":{"query":"value2"}}},{"match":{"testField2":{"query":"value3"}}},{"match":{"testField2":{"query":"value4"}}}]}}]}}');
+        assert.typeOf(element.cases[1].searches[0].lastAutomatedRun, 'date');
+        assert.typeOf(element.cases[1].searches[0].lastViewedByUser, 'date');
+        assert.isFalse(element.cases[1].searches[0].notify);
+        assert.equal(element.cases[1].searches[0].uiState, '{"field1":["value1"],"field2":["value2","value3","value4"]}');
+      });
+
+      test('profileManager.saveSearch callback does add to searches in cases', function() {
+        element.cases = [{
+          name: 'testCase1',
+          entities: [],
+          searches: [{
+            key: 'value'
+          }],
+          sendEmailAlert: false
+        }];
+
+        element.profileManager.saveSearch('testCase1');
+        element._callbacks[0]();
+
+        assert.equal(element.cases.length, 1);
+        assert.equal(element.cases[0].name, 'testCase1');
+        assert.deepEqual(element.cases[0].entities, []);
+        assert.isFalse(element.cases[0].sendEmailAlert);
+        assert.equal(element.cases[0].searches.length, 2);
+        assert.deepEqual(element.cases[0].searches[0], {
+          key: 'value'
+        });
+        assert.equal(element.cases[0].searches[1].esState, '{"bool":{"must":[{"match":{"testField1":{"query":"value1"}}},{"bool":{"minimum_number_should_match":1,"should":[{"match":{"testField2":{"query":"value2"}}},{"match":{"testField2":{"query":"value3"}}},{"match":{"testField2":{"query":"value4"}}}]}}]}}');
+        assert.typeOf(element.cases[0].searches[1].lastAutomatedRun, 'date');
+        assert.typeOf(element.cases[0].searches[1].lastViewedByUser, 'date');
+        assert.isFalse(element.cases[0].searches[1].notify);
+        assert.equal(element.cases[0].searches[1].uiState, '{"field1":["value1"],"field2":["value2","value3","value4"]}');
+      });
+
+      test('setting blurImages does set _userUpdateBody', function() {
+        element.blurImages = true;
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            blurImages: true
+          }
+        });
+
+        element.blurImages = false;
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            blurImages: false
+          }
+        });
+      });
+
+      test('setting blurImages does not set _userUpdateBody if _stopObservers is true', function() {
+        element._stopObservers = true;
+        element.blurImages = true;
+        assert.isUndefined(element._userUpdateBody);
+        element.blurImages = false;
+        assert.isUndefined(element._userUpdateBody);
+      });
+
+      test('setting cases does set _userUpdateBody', function() {
+        element.cases = [{
+          key1: 'value1'
+        }, {
+          key2: 'value2'
+        }];
+
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            cases: [{
+              key1: 'value1'
+            }, {
+              key2: 'value2'
+            }]
+          }
+        });
+
+        element.cases = [{
+          key3: 'value3'
+        }, {
+          key4: 'value4'
+        }];
+
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            cases: [{
+              key3: 'value3'
+            }, {
+              key4: 'value4'
+            }]
+          }
+        });
+      });
+
+      test('setting cases does not set _userUpdateBody if _stopObservers is true', function() {
+        element._stopObservers = true;
+        element.cases = [{
+          key1: 'value1'
+        }, {
+          key2: 'value2'
+        }];
+        assert.isUndefined(element._userUpdateBody);
+        element.cases = [{
+          key3: 'value3'
+        }, {
+          key4: 'value4'
+        }];
+        assert.isUndefined(element._userUpdateBody);
+      });
+
+      test('adding to cases does set _userUpdateBody', function() {
+        element.cases = [];
+
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            cases: []
+          }
+        });
+
+        element.cases.push({
+          key1: 'value1'
+        });
+
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            cases: [{
+              key1: 'value1'
+            }]
+          }
+        });
+
+        element.cases.push({
+          key2: 'value2'
+        });
+
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            cases: [{
+              key1: 'value1'
+            }, {
+              key2: 'value2'
+            }]
+          }
+        });
+      });
+
+      test('adding to cases does not set _userUpdateBody if _stopObservers is true', function() {
+        element._stopObservers = true;
+        element.cases = [];
+        assert.isUndefined(element._userUpdateBody);
+
+        element.cases.push({
+          key1: 'value1'
+        });
+        assert.isUndefined(element._userUpdateBody);
+
+        element.cases.push({
+          key2: 'value2'
+        });
+        assert.isUndefined(element._userUpdateBody);
+      });
+
+      test('setting emailAddress does set _userUpdateBody', function() {
+        element.emailAddress = 'abc@xyz.com';
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            emailAddress: 'abc@xyz.com'
+          }
+        });
+
+        element.emailAddress = 'xyz@abc.com';
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            emailAddress: 'xyz@abc.com'
+          }
+        });
+      });
+
+      test('setting emailAddress does not set _userUpdateBody if _stopObservers is true', function() {
+        element._stopObservers = true;
+        element.emailAddress = 'abc@xyz.com';
+        assert.isUndefined(element._userUpdateBody);
+        element.emailAddress = 'xyz@abc.com';
+        assert.isUndefined(element._userUpdateBody);
+      });
+
+      test('setting notificationInterval does set _userUpdateBody', function() {
+        element.notificationInterval = 'weekly';
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            notificationInterval: 'weekly'
+          }
+        });
+
+        element.notificationInterval = 'never';
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            notificationInterval: 'never'
+          }
+        });
+      });
+
+      test('setting notificationInterval does not set _userUpdateBody if _stopObservers is true', function() {
+        element._stopObservers = true;
+        element.notificationInterval = 'weekly';
+        assert.isUndefined(element._userUpdateBody);
+        element.notificationInterval = 'never';
+        assert.isUndefined(element._userUpdateBody);
+      });
+
+      test('setting userId to null does set _userCreateBody if username is defined', function() {
+        element.userId = null;
+
+        assert.deepEqual(element._userCreateBody, {
+          username: 'testUser',
+          blurImages: false,
+          emailAddress: '',
+          notificationInterval: 'never'
+        });
+      });
+
+      test('setting userId to a number or string does not set _userCreateBody', function() {
+        element.userId = '1234';
+        assert.isUndefined(element._userCreateBody);
+        element.userId = 1234;
+        assert.isUndefined(element._userCreateBody);
+      });
+
+      test('setting userId to null does not set _userCreateBody if username is undefined', function() {
+        element.username = undefined;
+        element.userId = null;
+        assert.isUndefined(element._userCreateBody);
+      });
+
+      test('setting username does not set _userCreateBody if userId is undefined', function() {
+        element.username = 'myUser';
+        assert.isUndefined(element._userCreateBody);
+      });
+
+      test('setting _stopObservers from true to false does work as expected', function() {
+        element._stopObservers = true;
+        element.cases = [{
+          key1: 'value1'
+        }];
+        assert.isUndefined(element._userUpdateBody);
+
+        element._stopObservers = false;
+        assert.isUndefined(element._userUpdateBody);
+
+        element.cases = [{
+          key2: 'value2'
+        }];
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            cases: [{
+              key2: 'value2'
+            }]
+          }
+        });
+
+        element.cases.push({
+          key3: 'value3'
+        });
+        assert.deepEqual(element._userUpdateBody, {
+          doc: {
+            cases: [{
+              key2: 'value2'
+            }, {
+              key3: 'value3'
+            }]
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
