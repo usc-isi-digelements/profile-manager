@@ -34,15 +34,6 @@ var buildSearchStateFunction = function(searchParameters) {
   };
 };
 
-var queryBuilderCallback = {
-  dates: function(list) {
-    return list;
-  },
-  terms: function(list) {
-    return list;
-  }
-};
-
 var queryBuilderConfig = {
   field1: {
     field: 'testField1'
@@ -64,8 +55,8 @@ var searchParameters = {
   client="[[client]]"
   index-name="dig-profiles"
   index-type="profile"
-  query-builder-callback="[[queryBuilderCallback]]"
   query-builder-config="[[queryBuilderConfig]]"
+  query-builder-date-fields="{}"
   search-parameters="[[searchParameters]]"
   username="user-1234"
   blur-images="{{blurImages}}"
@@ -88,9 +79,9 @@ var searchParameters = {
     </style>
 
     <query-builder
-      callback="[[queryBuilderCallback]]"
       config="[[queryBuilderConfig]]"
       data="[[searchParameters]]"
+      date-fields="[[queryBuilderDateFields]]"
       query="{{_search}}">
     </query-builder>
 
@@ -270,22 +261,22 @@ var searchParameters = {
         /**
          * (Required)
          *
-         * The callback for the `query-builder`.
+         * The config for the `query-builder`.
          *
          * @type {Object}
          */
-        queryBuilderCallback: {
+        queryBuilderConfig: {
           type: Object
         },
 
         /**
          * (Required)
          *
-         * The config for the `query-builder`.
+         * The date fields for the `query-builder`.
          *
          * @type {Object}
          */
-        queryBuilderConfig: {
+        queryBuilderDateFields: {
           type: Object
         },
 

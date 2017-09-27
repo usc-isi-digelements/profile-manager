@@ -1,7 +1,7 @@
 {
   "name": "profile-manager",
   "description": "A Polymer Element that managers user profiles saved in elasticsearch.",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "authors": ["Next Century Corporation"],
   "license": "Apache-2.0",
   "keywords": [
@@ -20,7 +20,7 @@
     "build-and-run-query": "DigElements/build-and-run-query#2.2.0",
     "elastic-create": "DigElements/elastic-create#2.0.1",
     "elastic-update": "DigElements/elastic-update#2.0.1",
-    "query-builder": "DigElements/query-builder#2.0.0"
+    "query-builder": "DigElements/query-builder#2.0.1"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^2.0.0",
