@@ -4,7 +4,7 @@ A Polymer Element that managers user profiles saved in elasticsearch.
 
 ### Example
 ```js
-var buildSearchStateFunction = function(searchParameters) {
+var buildStateDataFunction = function(searchParameters) {
   return {
     field1: searchParameters.field1 || [],
     field2: searchParameters.field2 || []
@@ -37,7 +37,7 @@ var searchParameters = {
 
 ```html
 <profile-manager
-  build-search-state-function="[[buildSearchStateFunction]]"
+  build-state-data-function="[[buildStateDataFunction]]"
   client="[[client]]"
   index-name="dig-profiles"
   index-type="profile"

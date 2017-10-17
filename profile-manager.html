@@ -27,7 +27,7 @@ A Polymer Element that managers user profiles saved in elasticsearch.
 
 ### Example
 ```js
-var buildSearchStateFunction = function(searchParameters) {
+var buildStateDataFunction = function(searchParameters) {
   return {
     field1: searchParameters.field1 || [],
     field2: searchParameters.field2 || []
@@ -51,7 +51,7 @@ var searchParameters = {
 
 ```html
 <profile-manager
-  build-search-state-function="[[buildSearchStateFunction]]"
+  build-state-data-function="[[buildStateDataFunction]]"
   client="[[client]]"
   index-name="dig-profiles"
   index-type="profile"
@@ -147,11 +147,11 @@ var searchParameters = {
         /**
          * (Required)
          *
-         * The function to build the `searchParameters` from the saved search state object.  Arguments:  {Object} stateObject
+         * The function to build the `searchParameters` using the saved search state object.  Arguments:  {Object} stateObject
          *
          * @type {Object}
          */
-        buildSearchStateFunction: {
+        buildStateDataFunction: {
           type: Object
         },
 
@@ -246,6 +246,8 @@ var searchParameters = {
          *
          * The  profile manager object with the following callbacks:
          * - `reloadUser`
+         * - `saveDocument`
+         * - `saveEntity`
          * - `saveSearch`
          *
          * @type {Object}
@@ -437,21 +439,41 @@ var searchParameters = {
               self.$$('#userQuery').runQuery();
             }
           },
+
+          saveDocument: function(caseName, documentId) {
+            self._callbacks.push(function() {
+              var result = self._findOrCreateCase(self.cases, caseName);
+              result.object.documents.push(self._createDocumentOrEntity(documentId));
+              // Use splice to run observers.
+              self.splice('cases', result.index, 1, result.object);
+            });
+
+            if(self.client) {
+              self.$$('#userQuery').runQuery();
+            }
+          },
+
+          saveEntity: function(caseName, entityId) {
+            self._callbacks.push(function() {
+              var result = self._findOrCreateCase(self.cases, caseName);
+              result.object.entities.push(self._createDocumentOrEntity(entityId));
+              // Use splice to run observers.
+              self.splice('cases', result.index, 1, result.object);
+            });
+
+            if(self.client) {
+              self.$$('#userQuery').runQuery();
+            }
+          },
+
           saveSearch: function(caseName) {
-            var callback = function() {
-              var index = _.findIndex(self.cases, function(caseObject) {
-                return caseObject.name === caseName;
-              });
-              if(index >= 0) {
-                var caseObject = _.cloneDeep(self.cases[index]);
-                caseObject.searches.push(self._createSearch(self._search, self.searchParameters, self.buildSearchStateFunction));
-                // Use splice to run observers.
-                self.splice('cases', index, 1, caseObject);
-              } else {
-                self.push('cases', self._createCase(caseName, null, self._createSearch(self._search, self.searchParameters, self.buildSearchStateFunction)));
-              }
-            };
-            self._callbacks.push(callback);
+            self._callbacks.push(function() {
+              var result = self._findOrCreateCase(self.cases, caseName);
+              result.object.searches.push(self._createSearch(self._search, self.searchParameters, self.buildStateDataFunction));
+              // Use splice to run observers.
+              self.splice('cases', result.index, 1, result.object);
+            });
+
             if(self.client) {
               self.$$('#userQuery').runQuery();
             }
@@ -460,20 +482,19 @@ var searchParameters = {
       },
 
       /**
-       * Creates and returns a new case object.
+       * Creates and returns a new document or entity object.
        *
-       * @param {String} caseName
-       * @param {Object} entity
-       * @param {Object} search
+       * @param {Object} id
        * @return {Object}
        * @private
        */
-      _createCase: function(caseName, entity, search) {
+      _createDocumentOrEntity: function(id) {
+        var date = new Date();
         return {
-          name: caseName,
-          entities: entity ? [entity] : [],
-          searches: search ? [search] : [],
-          sendEmailAlert: true
+          id: id,
+          lastAutomatedRun: date,
+          lastViewedByUser: date,
+          notify: false
         };
       },
 
@@ -482,18 +503,18 @@ var searchParameters = {
        *
        * @param {Object} search
        * @param {Object} searchParameters
-       * @param {Function} buildSearchStateFunction
+       * @param {Function} buildStateDataFunction
        * @return {Object}
        * @private
        */
-      _createSearch: function(search, searchParameters, buildSearchStateFunction) {
+      _createSearch: function(search, searchParameters, buildStateDataFunction) {
         var date = new Date();
         return {
           esState: search ? JSON.stringify(search.toJSON()) : undefined,
           lastAutomatedRun: date,
           lastViewedByUser: date,
           notify: false,
-          uiState: JSON.stringify(buildSearchStateFunction && searchParameters ? buildSearchStateFunction(searchParameters) : {})
+          uiState: JSON.stringify(buildStateDataFunction && searchParameters ? buildStateDataFunction(searchParameters) : {})
         };
       },
 
@@ -520,6 +541,31 @@ var searchParameters = {
             notificationInterval: this.notificationInterval
           });
         }
+      },
+
+      /**
+       * Finds and returns the case with the given name in the given list of cases or, if not found, creates and returns a new case object.
+       *
+       * @param {Array} cases
+       * @param {String} caseName
+       * @return {Object}
+       * @private
+       */
+      _findOrCreateCase: function(cases, caseName) {
+        var index = _.findIndex(cases, function(caseObject) {
+          return caseObject.name === caseName;
+        });
+        var object = index >= 0 ? _.cloneDeep(cases[index]) : {
+          name: caseName,
+          documents: [],
+          entities: [],
+          searches: [],
+          sendEmailAlert: true
+        };
+        return {
+          index: index >= 0 ? index : cases.length,
+          object: object
+        };
       },
 
       /**
