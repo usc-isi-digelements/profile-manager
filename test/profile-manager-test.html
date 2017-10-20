@@ -40,10 +40,12 @@ limitations under the License.
 
       setup(function(done) {
         element = fixture('profile-manager-fixture');
-        element.buildStateDataFunction = function(searchParameters) {
+        element.buildStateDataFunction = function(parameters) {
           return {
-            field1: searchParameters.field1 || [],
-            field2: searchParameters.field2 || []
+            field1: parameters.field1 || {},
+            field2: parameters.field2 || {},
+            field3: parameters.field3 || {},
+            field4: parameters.field4 || {}
           };
         };
         element.queryBuilderConfig = {
@@ -52,6 +54,12 @@ limitations under the License.
           },
           field2: {
             field: 'testField2'
+          },
+          field3: {
+            field: 'testField3'
+          },
+          field4: {
+            field: 'testField4'
           }
         };
         element.queryBuilderDateFields = {
@@ -59,6 +67,9 @@ limitations under the License.
         };
         element.indexName = 'testIndexName';
         element.indexType = 'testIndexType';
+        element.networkExpansionParameters = {
+          field1: true
+        };
         element.searchParameters = {
           field1: {
             value1: {
@@ -68,16 +79,22 @@ limitations under the License.
           },
           field2: {
             value2: {
-              enabled: true,
+              enabled: false,
               key: 'value2'
             },
+          },
+          field3: {
             value3: {
-              enabled: false,
+              enabled: true,
               key: 'value3'
             },
             value4: {
-              enabled: true,
+              enabled: false,
               key: 'value4'
+            },
+            value5: {
+              enabled: true,
+              key: 'value5'
             }
           }
         };
@@ -89,6 +106,9 @@ limitations under the License.
         assert.isFunction(element.buildStateDataFunction);
         assert.equal(element.indexName, 'testIndexName');
         assert.equal(element.indexType, 'testIndexType');
+        assert.deepEqual(element.networkExpansionParameters, {
+          field1: true
+        });
         assert.deepEqual(element.queryBuilderDateFields, {
           date: 'testDate'
         });
@@ -98,6 +118,12 @@ limitations under the License.
           },
           field2: {
             field: 'testField2'
+          },
+          field3: {
+            field: 'testField3'
+          },
+          field4: {
+            field: 'testField4'
           }
         });
         assert.deepEqual(element.searchParameters, {
@@ -109,16 +135,22 @@ limitations under the License.
           },
           field2: {
             value2: {
-              enabled: true,
+              enabled: false,
               key: 'value2'
             },
+          },
+          field3: {
             value3: {
-              enabled: false,
+              enabled: true,
               key: 'value3'
             },
             value4: {
-              enabled: true,
+              enabled: false,
               key: 'value4'
+            },
+            value5: {
+              enabled: true,
+              key: 'value5'
             }
           }
         });
@@ -153,14 +185,14 @@ limitations under the License.
                 minimum_number_should_match: 1,
                 should: [{
                   match: {
-                    testField2: {
-                      query: 'value2'
+                    testField3: {
+                      query: 'value3'
                     }
                   }
                 }, {
                   match: {
-                    testField2: {
-                      query: 'value4'
+                    testField3: {
+                      query: 'value5'
                     }
                   }
                 }]
@@ -186,6 +218,12 @@ limitations under the License.
           },
           field2: {
             field: 'testField2'
+          },
+          field3: {
+            field: 'testField3'
+          },
+          field4: {
+            field: 'testField4'
           }
         });
         assert.deepEqual(element.$$('query-builder').dateFields, {
@@ -200,16 +238,22 @@ limitations under the License.
           },
           field2: {
             value2: {
-              enabled: true,
+              enabled: false,
               key: 'value2'
             },
+          },
+          field3: {
             value3: {
-              enabled: false,
+              enabled: true,
               key: 'value3'
             },
             value4: {
-              enabled: true,
+              enabled: false,
               key: 'value4'
+            },
+            value5: {
+              enabled: true,
+              key: 'value5'
             }
           }
         });
@@ -226,14 +270,14 @@ limitations under the License.
                 minimum_number_should_match: 1,
                 should: [{
                   match: {
-                    testField2: {
-                      query: 'value2'
+                    testField3: {
+                      query: 'value3'
                     }
                   }
                 }, {
                   match: {
-                    testField2: {
-                      query: 'value4'
+                    testField3: {
+                      query: 'value5'
                     }
                   }
                 }]
@@ -287,7 +331,7 @@ limitations under the License.
         assert.typeOf(search1.lastAutomatedRun, 'date');
         assert.typeOf(search1.lastViewedByUser, 'date');
         assert.isFalse(search1.notify);
-        assert.equal(search1.uiState, '{}');
+        assert.equal(search1.uiState, '{\"networkExpansion\":{},\"search\":{}}');
 
         var called = false;
         var search2 = element._createSearch({
@@ -298,13 +342,15 @@ limitations under the License.
           }
         }, {
           key2: 'value2'
-        }, function(searchParameters) {
+        }, {
+          key3: 'value3'
+        },function(searchParameters) {
           called = true;
           assert.deepEqual(searchParameters, {
             key2: 'value2'
           });
           return {
-            key3: 'value3'
+            key4: 'value4'
           };
         });
         assert.isTrue(called);
@@ -312,7 +358,7 @@ limitations under the License.
         assert.typeOf(search2.lastAutomatedRun, 'date');
         assert.typeOf(search2.lastViewedByUser, 'date');
         assert.isFalse(search2.notify);
-        assert.equal(search2.uiState, '{\"key3\":\"value3\"}');
+        assert.equal(search2.uiState, '{\"networkExpansion\":{\"key3\":\"value3\"},\"search\":{\"key4\":\"value4\"}}');
       });
 
       test('_createUser does set _userCreateBody if userId is null', function() {
@@ -812,11 +858,11 @@ limitations under the License.
         assert.deepEqual(element.cases[1].entities, []);
         assert.isTrue(element.cases[1].sendEmailAlert);
         assert.equal(element.cases[1].searches.length, 1);
-        assert.equal(element.cases[1].searches[0].esState, '{"bool":{"must":[{"match":{"testField1":{"query":"value1"}}},{"bool":{"minimum_number_should_match":1,"should":[{"match":{"testField2":{"query":"value2"}}},{"match":{"testField2":{"query":"value4"}}}]}}]}}');
+        assert.equal(element.cases[1].searches[0].esState, '{"bool":{"must":[{"match":{"testField1":{"query":"value1"}}},{"bool":{"minimum_number_should_match":1,"should":[{"match":{"testField3":{"query":"value3"}}},{"match":{"testField3":{"query":"value5"}}}]}}]}}');
         assert.typeOf(element.cases[1].searches[0].lastAutomatedRun, 'date');
         assert.typeOf(element.cases[1].searches[0].lastViewedByUser, 'date');
         assert.isFalse(element.cases[1].searches[0].notify);
-        assert.equal(element.cases[1].searches[0].uiState, '{"field1":{"value1":{"enabled":true,"key":"value1"}},"field2":{"value2":{"enabled":true,"key":"value2"},"value3":{"enabled":false,"key":"value3"},"value4":{"enabled":true,"key":"value4"}}}');
+        assert.equal(element.cases[1].searches[0].uiState, '{"networkExpansion":{"field1":true},"search":{"field1":{"value1":{"enabled":true,"key":"value1"}},"field2":{"value2":{"enabled":false,"key":"value2"}},"field3":{"value3":{"enabled":true,"key":"value3"},"value4":{"enabled":false,"key":"value4"},"value5":{"enabled":true,"key":"value5"}},"field4":{}}}');
       });
 
       test('profileManager.saveSearch callback does add to searches in cases', function() {
@@ -842,11 +888,11 @@ limitations under the License.
         assert.deepEqual(element.cases[0].searches[0], {
           key: 'value'
         });
-        assert.equal(element.cases[0].searches[1].esState, '{"bool":{"must":[{"match":{"testField1":{"query":"value1"}}},{"bool":{"minimum_number_should_match":1,"should":[{"match":{"testField2":{"query":"value2"}}},{"match":{"testField2":{"query":"value4"}}}]}}]}}');
+        assert.equal(element.cases[0].searches[1].esState, '{"bool":{"must":[{"match":{"testField1":{"query":"value1"}}},{"bool":{"minimum_number_should_match":1,"should":[{"match":{"testField3":{"query":"value3"}}},{"match":{"testField3":{"query":"value5"}}}]}}]}}');
         assert.typeOf(element.cases[0].searches[1].lastAutomatedRun, 'date');
         assert.typeOf(element.cases[0].searches[1].lastViewedByUser, 'date');
         assert.isFalse(element.cases[0].searches[1].notify);
-        assert.equal(element.cases[0].searches[1].uiState, '{"field1":{"value1":{"enabled":true,"key":"value1"}},"field2":{"value2":{"enabled":true,"key":"value2"},"value3":{"enabled":false,"key":"value3"},"value4":{"enabled":true,"key":"value4"}}}');
+        assert.equal(element.cases[0].searches[1].uiState, '{"networkExpansion":{"field1":true},"search":{"field1":{"value1":{"enabled":true,"key":"value1"}},"field2":{"value2":{"enabled":false,"key":"value2"}},"field3":{"value3":{"enabled":true,"key":"value3"},"value4":{"enabled":false,"key":"value4"},"value5":{"enabled":true,"key":"value5"}},"field4":{}}}');
       });
 
       test('setting blurImages does set _userUpdateBody', function() {

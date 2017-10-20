@@ -55,6 +55,7 @@ var searchParameters = {
   client="[[client]]"
   index-name="dig-profiles"
   index-type="profile"
+  network-expansion-parameters="{}"
   query-builder-config="[[queryBuilderConfig]]"
   query-builder-date-fields="{}"
   search-parameters="[[searchParameters]]"
@@ -145,7 +146,7 @@ var searchParameters = {
         },
 
         /**
-         * (Required)
+         * (Required to save search)
          *
          * The function to build the `searchParameters` using the saved search state object.  Arguments:  {Object} stateObject
          *
@@ -212,6 +213,17 @@ var searchParameters = {
          */
         indexType: {
           type: String
+        },
+
+        /**
+         * (Required to save search)
+         *
+         * The network expansion parameters.
+         *
+         * @type {Object}
+         */
+        networkExpansionParameters: {
+          type: Object
         },
 
         /**
@@ -283,7 +295,7 @@ var searchParameters = {
         },
 
         /**
-         * (Required)
+         * (Required to save search)
          *
          * The search parameters.
          *
@@ -469,7 +481,7 @@ var searchParameters = {
           saveSearch: function(caseName) {
             self._callbacks.push(function() {
               var result = self._findOrCreateCase(self.cases, caseName);
-              result.object.searches.push(self._createSearch(self._search, self.searchParameters, self.buildStateDataFunction));
+              result.object.searches.push(self._createSearch(self._search, self.searchParameters, self.networkExpansionParameters, self.buildStateDataFunction));
               // Use splice to run observers.
               self.splice('cases', result.index, 1, result.object);
             });
@@ -503,18 +515,20 @@ var searchParameters = {
        *
        * @param {Object} search
        * @param {Object} searchParameters
+       * @param {Object} networkExpansionParameters
        * @param {Function} buildStateDataFunction
        * @return {Object}
        * @private
        */
-      _createSearch: function(search, searchParameters, buildStateDataFunction) {
+      _createSearch: function(search, searchParameters, networkExpansionParameters, buildStateDataFunction) {
         var date = new Date();
         return {
           esState: search ? JSON.stringify(search.toJSON()) : undefined,
           lastAutomatedRun: date,
           lastViewedByUser: date,
           notify: false,
-          uiState: JSON.stringify(buildStateDataFunction && searchParameters ? buildStateDataFunction(searchParameters) : {})
+          uiState: '{"networkExpansion":' + JSON.stringify(networkExpansionParameters || {}) + ',"search":' +
+            JSON.stringify(buildStateDataFunction && searchParameters ? buildStateDataFunction(searchParameters) : {}) + '}'
         };
       },
 
