@@ -455,7 +455,7 @@ var searchParameters = {
           saveDocument: function(caseName, documentId) {
             self._callbacks.push(function() {
               var result = self._findOrCreateCase(self.cases, caseName);
-              result.object.documents.push(self._createDocumentOrEntity(documentId));
+              result.object.documentList.push(self._createDocumentOrEntity(documentId));
               // Use splice to run observers.
               self.splice('cases', result.index, 1, result.object);
             });
@@ -468,7 +468,7 @@ var searchParameters = {
           saveEntity: function(caseName, entityId) {
             self._callbacks.push(function() {
               var result = self._findOrCreateCase(self.cases, caseName);
-              result.object.entities.push(self._createDocumentOrEntity(entityId));
+              result.object.entityList.push(self._createDocumentOrEntity(entityId));
               // Use splice to run observers.
               self.splice('cases', result.index, 1, result.object);
             });
@@ -481,7 +481,7 @@ var searchParameters = {
           saveSearch: function(caseName) {
             self._callbacks.push(function() {
               var result = self._findOrCreateCase(self.cases, caseName);
-              result.object.searches.push(self._createSearch(self._search, self.searchParameters, self.networkExpansionParameters, self.buildStateDataFunction));
+              result.object.searchList.push(self._createSearch(self._search, self.searchParameters, self.networkExpansionParameters, self.buildStateDataFunction));
               // Use splice to run observers.
               self.splice('cases', result.index, 1, result.object);
             });
@@ -560,24 +560,24 @@ var searchParameters = {
       /**
        * Finds and returns the case with the given name in the given list of cases or, if not found, creates and returns a new case object.
        *
-       * @param {Array} cases
+       * @param {Array} caseList
        * @param {String} caseName
        * @return {Object}
        * @private
        */
-      _findOrCreateCase: function(cases, caseName) {
-        var index = _.findIndex(cases, function(caseObject) {
+      _findOrCreateCase: function(caseList, caseName) {
+        var index = _.findIndex(caseList, function(caseObject) {
           return caseObject.name === caseName;
         });
-        var object = index >= 0 ? _.cloneDeep(cases[index]) : {
+        var object = index >= 0 ? _.cloneDeep(caseList[index]) : {
           name: caseName,
-          documents: [],
-          entities: [],
-          searches: [],
+          documentList: [],
+          entityList: [],
+          searchList: [],
           sendEmailAlert: true
         };
         return {
-          index: index >= 0 ? index : cases.length,
+          index: index >= 0 ? index : caseList.length,
           object: object
         };
       },
@@ -648,7 +648,7 @@ var searchParameters = {
       },
 
       /**
-       * Updates the `cases` for the user in elasticsearch.
+       * Updates the `caseList` for the user in elasticsearch.
        *
        * @private
        */
@@ -660,7 +660,7 @@ var searchParameters = {
         var self = this;
         this.set('_userUpdateBody', {
           doc: {
-            cases: self.cases
+            caseList: self.cases
           }
         });
       },
@@ -718,16 +718,16 @@ var searchParameters = {
           this.set('notificationInterval', user.notificationInterval);
         }
 
-        if(user.cases) {
+        if(user.caseList) {
           var self = this;
-          user.cases.forEach(function(caseObject) {
-            caseObject.searches.forEach(function(searchObject) {
+          user.caseList.forEach(function(caseObject) {
+            caseObject.searchList.forEach(function(searchObject) {
               if(searchObject.notify) {
                 self.set('notifications', true);
               }
             })
           });
-          this.set('cases', user.cases);
+          this.set('cases', user.caseList);
         }
       }
     });
