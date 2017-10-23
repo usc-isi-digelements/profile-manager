@@ -53,6 +53,7 @@ var searchParameters = {
 <profile-manager
   build-state-data-function="[[buildStateDataFunction]]"
   client="[[client]]"
+  function-config='{}'
   index-name="dig-profiles"
   index-type="profile"
   network-expansion-parameters="{}"
@@ -191,6 +192,17 @@ var searchParameters = {
           notify: true,
           observer: '_updateEmailAddress',
           type: String
+        },
+
+        /**
+         * (Required to save search)
+         *
+         * The config object for the build function.
+         *
+         * @type {Object}
+         */
+        functionConfig: {
+          type: Object
         },
 
         /**
@@ -481,7 +493,7 @@ var searchParameters = {
           saveSearch: function(caseName) {
             self._callbacks.push(function() {
               var result = self._findOrCreateCase(self.cases, caseName);
-              result.object.searchList.push(self._createSearch(self._search, self.searchParameters, self.networkExpansionParameters, self.buildStateDataFunction));
+              result.object.searchList.push(self._createSearch(self._search, self.searchParameters, self.networkExpansionParameters, self.functionConfig, self.buildStateDataFunction));
               // Use splice to run observers.
               self.splice('cases', result.index, 1, result.object);
             });
@@ -516,11 +528,12 @@ var searchParameters = {
        * @param {Object} search
        * @param {Object} searchParameters
        * @param {Object} networkExpansionParameters
+       * @param {Object} functionConfig
        * @param {Function} buildStateDataFunction
        * @return {Object}
        * @private
        */
-      _createSearch: function(search, searchParameters, networkExpansionParameters, buildStateDataFunction) {
+      _createSearch: function(search, searchParameters, networkExpansionParameters, functionConfig, buildStateDataFunction) {
         var date = new Date();
         return {
           esState: search ? JSON.stringify(search.toJSON()) : undefined,
@@ -528,7 +541,7 @@ var searchParameters = {
           lastViewedByUser: date,
           notify: false,
           uiState: '{"networkExpansion":' + JSON.stringify(networkExpansionParameters || {}) + ',"search":' +
-            JSON.stringify(buildStateDataFunction && searchParameters ? buildStateDataFunction(searchParameters) : {}) + '}'
+            JSON.stringify(buildStateDataFunction && searchParameters ? buildStateDataFunction(searchParameters, functionConfig) : {}) + '}'
         };
       },
 
@@ -551,6 +564,7 @@ var searchParameters = {
           this.set('_userCreateBody', {
             username: username,
             blurImages: this.blurImages,
+            caseList: [],
             emailAddress: this.emailAddress,
             notificationInterval: this.notificationInterval
           });

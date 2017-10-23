@@ -164,6 +164,7 @@ limitations under the License.
         assert.isUndefined(element.blurImages);
         assert.isUndefined(element.cases);
         assert.isUndefined(element.emailAddress);
+        assert.isUndefined(element.functionConfig);
         assert.isUndefined(element.notificationInterval);
         assert.isUndefined(element.userId);
         assert.isUndefined(element._userCreateBody);
@@ -344,13 +345,18 @@ limitations under the License.
           key2: 'value2'
         }, {
           key3: 'value3'
-        },function(searchParameters) {
+        }, {
+          key4: 'value4'
+        }, function(searchParameters, config) {
           called = true;
           assert.deepEqual(searchParameters, {
             key2: 'value2'
           });
-          return {
+          assert.deepEqual(config, {
             key4: 'value4'
+          });
+          return {
+            key5: 'value5'
           };
         });
         assert.isTrue(called);
@@ -358,7 +364,7 @@ limitations under the License.
         assert.typeOf(search2.lastAutomatedRun, 'date');
         assert.typeOf(search2.lastViewedByUser, 'date');
         assert.isFalse(search2.notify);
-        assert.equal(search2.uiState, '{\"networkExpansion\":{\"key3\":\"value3\"},\"search\":{\"key4\":\"value4\"}}');
+        assert.equal(search2.uiState, '{\"networkExpansion\":{\"key3\":\"value3\"},\"search\":{\"key5\":\"value5\"}}');
       });
 
       test('_createUser does set _userCreateBody if userId is null', function() {
@@ -367,6 +373,7 @@ limitations under the License.
         assert.deepEqual(element._userCreateBody, {
           username: 'myUser',
           blurImages: false,
+          caseList: [],
           emailAddress: '',
           notificationInterval: 'never'
         });
@@ -381,6 +388,7 @@ limitations under the License.
         assert.deepEqual(element._userCreateBody, {
           username: 'myUser',
           blurImages: true,
+          caseList: [],
           emailAddress: 'abc@xyz.com',
           notificationInterval: 'weekly'
         });
@@ -456,6 +464,7 @@ limitations under the License.
         assert.deepEqual(element._userCreateBody, {
           username: 'testUser',
           blurImages: false,
+          caseList: [],
           emailAddress: '',
           notificationInterval: 'never'
         });
@@ -1075,6 +1084,7 @@ limitations under the License.
         assert.deepEqual(element._userCreateBody, {
           username: 'testUser',
           blurImages: false,
+          caseList: [],
           emailAddress: '',
           notificationInterval: 'never'
         });
