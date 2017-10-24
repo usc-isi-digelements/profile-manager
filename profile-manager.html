@@ -464,10 +464,10 @@ var searchParameters = {
             }
           },
 
-          saveDocument: function(caseName, documentId) {
+          saveDocument: function(caseName, documentId, documentName, documentType) {
             self._callbacks.push(function() {
               var result = self._findOrCreateCase(self.cases, caseName);
-              result.object.documentList.push(self._createDocumentOrEntity(documentId));
+              result.object.documentList.push(self._createDocumentOrEntity(documentId, documentName, documentType));
               // Use splice to run observers.
               self.splice('cases', result.index, 1, result.object);
             });
@@ -477,10 +477,10 @@ var searchParameters = {
             }
           },
 
-          saveEntity: function(caseName, entityId) {
+          saveEntity: function(caseName, entityId, entityName, entityType) {
             self._callbacks.push(function() {
               var result = self._findOrCreateCase(self.cases, caseName);
-              result.object.entityList.push(self._createDocumentOrEntity(entityId));
+              result.object.entityList.push(self._createDocumentOrEntity(entityId, entityName, entityType));
               // Use splice to run observers.
               self.splice('cases', result.index, 1, result.object);
             });
@@ -508,17 +508,21 @@ var searchParameters = {
       /**
        * Creates and returns a new document or entity object.
        *
-       * @param {Object} id
+       * @param {String} id
+       * @param {String} name
+       * @param {String} type
        * @return {Object}
        * @private
        */
-      _createDocumentOrEntity: function(id) {
+      _createDocumentOrEntity: function(id, name, type) {
         var date = new Date();
         return {
           id: id,
           lastAutomatedRun: date,
           lastViewedByUser: date,
-          notify: false
+          name: name,
+          notify: false,
+          type: type
         };
       },
 
