@@ -206,7 +206,7 @@ limitations under the License.
       test('profileManager is as expected', function() {
         assert.isObject(element.profileManager);
         assert.isFunction(element.profileManager.reloadUser);
-        assert.isFunction(element.profileManager.saveDocument);
+        assert.isFunction(element.profileManager.saveResult);
         assert.isFunction(element.profileManager.saveEntity);
         assert.isFunction(element.profileManager.saveSearch);
       });
@@ -312,14 +312,14 @@ limitations under the License.
         assert.equal(element.$$('elastic-update').elasticType, 'testIndexType');
       });
 
-      test('_createDocumentOrEntity does return as expected', function() {
-        var result1 = element._createDocumentOrEntity();
+      test('_createEntityOrResult does return as expected', function() {
+        var result1 = element._createEntityOrResult();
         assert.isUndefined(result1.id);
         assert.typeOf(result1.lastAutomatedRun, 'date');
         assert.typeOf(result1.lastViewedByUser, 'date');
         assert.isFalse(result1.notify);
 
-        var result2 = element._createDocumentOrEntity('myId', 'My Name', 'myType');
+        var result2 = element._createEntityOrResult('myId', 'My Name', 'myType');
         assert.equal(result2.id, 'myId');
         assert.typeOf(result2.lastAutomatedRun, 'date');
         assert.typeOf(result2.lastViewedByUser, 'date');
@@ -447,8 +447,8 @@ limitations under the License.
           index: 2,
           object: {
             name: 'name3',
-            documentList: [],
             entityList: [],
+            resultList: [],
             searchList: [],
             sendEmailAlert: true
           }
@@ -697,75 +697,6 @@ limitations under the License.
         assert.deepEqual(element._callbacks, ['testCallback']);
       });
 
-      test('profileManager.saveDocument does add callback', function() {
-        element.profileManager.saveDocument();
-        assert.equal(element._callbacks.length, 1);
-        assert.isFunction(element._callbacks[0]);
-      });
-
-      test('profileManager.saveDocument callback does add to cases', function() {
-        element.cases = [{
-          name: 'testCase1',
-          documentList: [{
-            key: 'value'
-          }],
-          entityList: [],
-          searchList: [],
-          sendEmailAlert: false
-        }];
-
-        element.profileManager.saveDocument('testCase2', 'testDocument');
-        element._callbacks[0]();
-
-        assert.equal(element.cases.length, 2);
-        assert.equal(element.cases[0].name, 'testCase1');
-        assert.deepEqual(element.cases[0].entityList, []);
-        assert.deepEqual(element.cases[0].searchList, []);
-        assert.isFalse(element.cases[0].sendEmailAlert);
-        assert.deepEqual(element.cases[0].documentList[0], {
-          key: 'value'
-        });
-
-        assert.equal(element.cases[1].name, 'testCase2');
-        assert.deepEqual(element.cases[1].entityList, []);
-        assert.deepEqual(element.cases[1].searchList, []);
-        assert.isTrue(element.cases[1].sendEmailAlert);
-        assert.equal(element.cases[1].documentList.length, 1);
-        assert.equal(element.cases[1].documentList[0].id, 'testDocument');
-        assert.typeOf(element.cases[1].documentList[0].lastAutomatedRun, 'date');
-        assert.typeOf(element.cases[1].documentList[0].lastViewedByUser, 'date');
-        assert.isFalse(element.cases[1].documentList[0].notify);
-      });
-
-      test('profileManager.saveDocument callback does add to documentList in cases', function() {
-        element.cases = [{
-          name: 'testCase1',
-          documentList: [{
-            key: 'value'
-          }],
-          entityList: [],
-          searchList: [],
-          sendEmailAlert: false
-        }];
-
-        element.profileManager.saveDocument('testCase1', 'testDocument');
-        element._callbacks[0]();
-
-        assert.equal(element.cases.length, 1);
-        assert.equal(element.cases[0].name, 'testCase1');
-        assert.deepEqual(element.cases[0].entityList, []);
-        assert.deepEqual(element.cases[0].searchList, []);
-        assert.isFalse(element.cases[0].sendEmailAlert);
-        assert.equal(element.cases[0].documentList.length, 2);
-        assert.deepEqual(element.cases[0].documentList[0], {
-          key: 'value'
-        });
-        assert.equal(element.cases[0].documentList[1].id, 'testDocument');
-        assert.typeOf(element.cases[0].documentList[1].lastAutomatedRun, 'date');
-        assert.typeOf(element.cases[0].documentList[1].lastViewedByUser, 'date');
-        assert.isFalse(element.cases[0].documentList[1].notify);
-      });
-
       test('profileManager.saveEntity does add callback', function() {
         element.profileManager.saveEntity();
         assert.equal(element._callbacks.length, 1);
@@ -775,10 +706,10 @@ limitations under the License.
       test('profileManager.saveEntity callback does add to cases', function() {
         element.cases = [{
           name: 'testCase1',
-          documentList: [],
           entityList: [{
             key: 'value'
           }],
+          resultList: [],
           searchList: [],
           sendEmailAlert: false
         }];
@@ -788,7 +719,7 @@ limitations under the License.
 
         assert.equal(element.cases.length, 2);
         assert.equal(element.cases[0].name, 'testCase1');
-        assert.deepEqual(element.cases[0].documentList, []);
+        assert.deepEqual(element.cases[0].resultList, []);
         assert.deepEqual(element.cases[0].searchList, []);
         assert.isFalse(element.cases[0].sendEmailAlert);
         assert.deepEqual(element.cases[0].entityList[0], {
@@ -796,7 +727,7 @@ limitations under the License.
         });
 
         assert.equal(element.cases[1].name, 'testCase2');
-        assert.deepEqual(element.cases[1].documentList, []);
+        assert.deepEqual(element.cases[1].resultList, []);
         assert.deepEqual(element.cases[1].searchList, []);
         assert.isTrue(element.cases[1].sendEmailAlert);
         assert.equal(element.cases[1].entityList.length, 1);
@@ -811,10 +742,10 @@ limitations under the License.
       test('profileManager.saveEntity callback does add to entityList in cases', function() {
         element.cases = [{
           name: 'testCase1',
-          documentList: [],
           entityList: [{
             key: 'value'
           }],
+          resultList: [],
           searchList: [],
           sendEmailAlert: false
         }];
@@ -824,7 +755,7 @@ limitations under the License.
 
         assert.equal(element.cases.length, 1);
         assert.equal(element.cases[0].name, 'testCase1');
-        assert.deepEqual(element.cases[0].documentList, []);
+        assert.deepEqual(element.cases[0].resultList, []);
         assert.deepEqual(element.cases[0].searchList, []);
         assert.isFalse(element.cases[0].sendEmailAlert);
         assert.equal(element.cases[0].entityList.length, 2);
@@ -839,6 +770,75 @@ limitations under the License.
         assert.equal(element.cases[0].entityList[1].type, 'testType');
       });
 
+      test('profileManager.saveResult does add callback', function() {
+        element.profileManager.saveResult();
+        assert.equal(element._callbacks.length, 1);
+        assert.isFunction(element._callbacks[0]);
+      });
+
+      test('profileManager.saveResult callback does add to cases', function() {
+        element.cases = [{
+          name: 'testCase1',
+          entityList: [],
+          resultList: [{
+            key: 'value'
+          }],
+          searchList: [],
+          sendEmailAlert: false
+        }];
+
+        element.profileManager.saveResult('testCase2', 'testResult');
+        element._callbacks[0]();
+
+        assert.equal(element.cases.length, 2);
+        assert.equal(element.cases[0].name, 'testCase1');
+        assert.deepEqual(element.cases[0].entityList, []);
+        assert.deepEqual(element.cases[0].searchList, []);
+        assert.isFalse(element.cases[0].sendEmailAlert);
+        assert.deepEqual(element.cases[0].resultList[0], {
+          key: 'value'
+        });
+
+        assert.equal(element.cases[1].name, 'testCase2');
+        assert.deepEqual(element.cases[1].entityList, []);
+        assert.deepEqual(element.cases[1].searchList, []);
+        assert.isTrue(element.cases[1].sendEmailAlert);
+        assert.equal(element.cases[1].resultList.length, 1);
+        assert.equal(element.cases[1].resultList[0].id, 'testResult');
+        assert.typeOf(element.cases[1].resultList[0].lastAutomatedRun, 'date');
+        assert.typeOf(element.cases[1].resultList[0].lastViewedByUser, 'date');
+        assert.isFalse(element.cases[1].resultList[0].notify);
+      });
+
+      test('profileManager.saveResult callback does add to resultList in cases', function() {
+        element.cases = [{
+          name: 'testCase1',
+          entityList: [],
+          resultList: [{
+            key: 'value'
+          }],
+          searchList: [],
+          sendEmailAlert: false
+        }];
+
+        element.profileManager.saveResult('testCase1', 'testResult');
+        element._callbacks[0]();
+
+        assert.equal(element.cases.length, 1);
+        assert.equal(element.cases[0].name, 'testCase1');
+        assert.deepEqual(element.cases[0].entityList, []);
+        assert.deepEqual(element.cases[0].searchList, []);
+        assert.isFalse(element.cases[0].sendEmailAlert);
+        assert.equal(element.cases[0].resultList.length, 2);
+        assert.deepEqual(element.cases[0].resultList[0], {
+          key: 'value'
+        });
+        assert.equal(element.cases[0].resultList[1].id, 'testResult');
+        assert.typeOf(element.cases[0].resultList[1].lastAutomatedRun, 'date');
+        assert.typeOf(element.cases[0].resultList[1].lastViewedByUser, 'date');
+        assert.isFalse(element.cases[0].resultList[1].notify);
+      });
+
       test('profileManager.saveSearch does add callback', function() {
         element.profileManager.saveSearch();
         assert.equal(element._callbacks.length, 1);
@@ -848,8 +848,8 @@ limitations under the License.
       test('profileManager.saveSearch callback does add to cases', function() {
         element.cases = [{
           name: 'testCase1',
-          documentList: [],
           entityList: [],
+          resultList: [],
           searchList: [{
             key: 'value'
           }],
@@ -861,16 +861,16 @@ limitations under the License.
 
         assert.equal(element.cases.length, 2);
         assert.equal(element.cases[0].name, 'testCase1');
-        assert.deepEqual(element.cases[0].documentList, []);
         assert.deepEqual(element.cases[0].entityList, []);
+        assert.deepEqual(element.cases[0].resultList, []);
         assert.isFalse(element.cases[0].sendEmailAlert);
         assert.deepEqual(element.cases[0].searchList[0], {
           key: 'value'
         });
 
         assert.equal(element.cases[1].name, 'testCase2');
-        assert.deepEqual(element.cases[1].documentList, []);
         assert.deepEqual(element.cases[1].entityList, []);
+        assert.deepEqual(element.cases[1].resultList, []);
         assert.isTrue(element.cases[1].sendEmailAlert);
         assert.equal(element.cases[1].searchList.length, 1);
         assert.equal(element.cases[1].searchList[0].esState, '{"bool":{"must":[{"match":{"testField1":{"query":"value1"}}},{"bool":{"minimum_number_should_match":1,"should":[{"match":{"testField3":{"query":"value3"}}},{"match":{"testField3":{"query":"value5"}}}]}}]}}');
@@ -883,8 +883,8 @@ limitations under the License.
       test('profileManager.saveSearch callback does add to searchList in cases', function() {
         element.cases = [{
           name: 'testCase1',
-          documentList: [],
           entityList: [],
+          resultList: [],
           searchList: [{
             key: 'value'
           }],
@@ -896,8 +896,8 @@ limitations under the License.
 
         assert.equal(element.cases.length, 1);
         assert.equal(element.cases[0].name, 'testCase1');
-        assert.deepEqual(element.cases[0].documentList, []);
         assert.deepEqual(element.cases[0].entityList, []);
+        assert.deepEqual(element.cases[0].resultList, []);
         assert.isFalse(element.cases[0].sendEmailAlert);
         assert.equal(element.cases[0].searchList.length, 2);
         assert.deepEqual(element.cases[0].searchList[0], {

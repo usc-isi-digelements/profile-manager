@@ -270,8 +270,8 @@ var searchParameters = {
          *
          * The  profile manager object with the following callbacks:
          * - `reloadUser`
-         * - `saveDocument`
          * - `saveEntity`
+         * - `saveResult`
          * - `saveSearch`
          *
          * @type {Object}
@@ -464,10 +464,10 @@ var searchParameters = {
             }
           },
 
-          saveDocument: function(caseName, documentId, documentName, documentType) {
+          saveEntity: function(caseName, entityId, entityName, entityType) {
             self._callbacks.push(function() {
               var result = self._findOrCreateCase(self.cases, caseName);
-              result.object.documentList.push(self._createDocumentOrEntity(documentId, documentName, documentType));
+              result.object.entityList.push(self._createEntityOrResult(entityId, entityName, entityType));
               // Use splice to run observers.
               self.splice('cases', result.index, 1, result.object);
             });
@@ -477,10 +477,10 @@ var searchParameters = {
             }
           },
 
-          saveEntity: function(caseName, entityId, entityName, entityType) {
+          saveResult: function(caseName, resultId, resultName, resultType) {
             self._callbacks.push(function() {
               var result = self._findOrCreateCase(self.cases, caseName);
-              result.object.entityList.push(self._createDocumentOrEntity(entityId, entityName, entityType));
+              result.object.resultList.push(self._createEntityOrResult(resultId, resultName, resultType));
               // Use splice to run observers.
               self.splice('cases', result.index, 1, result.object);
             });
@@ -506,7 +506,7 @@ var searchParameters = {
       },
 
       /**
-       * Creates and returns a new document or entity object.
+       * Creates and returns a new entity or result object.
        *
        * @param {String} id
        * @param {String} name
@@ -514,7 +514,7 @@ var searchParameters = {
        * @return {Object}
        * @private
        */
-      _createDocumentOrEntity: function(id, name, type) {
+      _createEntityOrResult: function(id, name, type) {
         var date = new Date();
         return {
           id: id,
@@ -589,8 +589,8 @@ var searchParameters = {
         });
         var object = index >= 0 ? _.cloneDeep(caseList[index]) : {
           name: caseName,
-          documentList: [],
           entityList: [],
+          resultList: [],
           searchList: [],
           sendEmailAlert: true
         };
