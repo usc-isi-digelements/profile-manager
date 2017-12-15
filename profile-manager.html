@@ -464,10 +464,10 @@ var searchParameters = {
             }
           },
 
-          saveEntity: function(caseName, entityId, entityName, entityType) {
+          saveEntity: function(caseName, entityField, entityId, entityName, entityType) {
             self._callbacks.push(function() {
               var result = self._findOrCreateCase(self.cases, caseName);
-              result.object.entityList.push(self._createEntityOrResult(entityId, entityName, entityType));
+              result.object.entityList.push(self._createEntityOrResult(entityId, entityName, entityType, entityField));
               // Use splice to run observers.
               self.splice('cases', result.index, 1, result.object);
             });
@@ -511,12 +511,13 @@ var searchParameters = {
        * @param {String} id
        * @param {String} name
        * @param {String} type
+       * @param {String} field
        * @return {Object}
        * @private
        */
-      _createEntityOrResult: function(id, name, type) {
+      _createEntityOrResult: function(id, name, type, field) {
         var date = new Date();
-        return {
+        var object = {
           id: id,
           lastAutomatedRun: date,
           lastViewedByUser: date,
@@ -524,6 +525,10 @@ var searchParameters = {
           notify: false,
           type: type
         };
+        if(field) {
+          object.field = field;
+        }
+        return object;
       },
 
       /**
