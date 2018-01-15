@@ -296,7 +296,6 @@ limitations under the License.
         assert.equal(element.$$('build-and-run-query').indexName, 'testIndexName');
         assert.deepEqual(element.$$('build-and-run-query').indexTypes, ['testIndexType']);
         assert.deepEqual(element.$$('build-and-run-query').aggregations, []);
-        assert.deepEqual(element.$$('build-and-run-query').filters, []);
         assert.isNull(element.$$('build-and-run-query').results);
       });
 
@@ -698,9 +697,9 @@ limitations under the License.
         assert.isTrue(element.notifications);
       });
 
-      test('does have buildArray function', function() {
-        assert.isFunction(element.buildArray);
-        assert.deepEqual(element.buildArray('1234'), ['1234']);
+      test('does have _buildArray function', function() {
+        assert.isFunction(element._buildArray);
+        assert.deepEqual(element._buildArray('1234'), ['1234']);
       });
 
       test('profileManager.reloadUser does add callback', function() {
