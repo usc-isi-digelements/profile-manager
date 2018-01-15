@@ -15,7 +15,6 @@ limitations under the License.
 -->
 
 <link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../array-behavior/array-behavior.html">
 <link rel="import" href="../build-and-run-query/build-and-run-query.html">
 <link rel="import" href="../elastic-create/elastic-create.html">
 <link rel="import" href="../elastic-update/elastic-update.html">
@@ -93,9 +92,8 @@ var searchParameters = {
       values="[[username]]"
       client="[[client]]"
       index-name="[[indexName]]"
-      index-types="[[buildArray(indexType)]]"
+      index-types="[[_buildArray(indexType)]]"
       aggregations="[]"
-      filters="[]"
       loading="{{userLoading}}"
       results="{{_userSearchResult}}">
     </build-and-run-query>
@@ -125,12 +123,8 @@ var searchParameters = {
     'use strict';
 
     Polymer({
-      /* globals _, DigBehaviors */
+      /* globals _ */
       is: 'profile-manager',
-
-      behaviors: [
-        DigBehaviors.ArrayBehavior
-      ],
 
       properties: {
         /**
@@ -447,6 +441,16 @@ var searchParameters = {
         '_createUser(userId, username)',
         '_updateCases(cases.splices)'
       ],
+
+      /**
+       * Returns an array of the given input.
+       *
+       * @param {Any} input
+       * @return {Array}
+       */
+      _buildArray: function(input) {
+        return [input];
+      },
 
       /**
        * Creates and returns the `profileManager` object.
