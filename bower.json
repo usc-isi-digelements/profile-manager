@@ -16,10 +16,10 @@
   ],
   "dependencies": {
     "polymer": "Polymer/polymer#^2.0.2",
-    "build-and-run-query": "usc-isi-digelements/build-and-run-query#2.5.1",
-    "elastic-create": "usc-isi-digelements/elastic-create#2.1.0",
-    "elastic-update": "usc-isi-digelements/elastic-update#2.1.0",
-    "query-builder": "usc-isi-digelements/query-builder#2.2.0"
+    "build-and-run-query": "usc-isi-digelements/build-and-run-query#^2.5.1",
+    "elastic-create": "usc-isi-digelements/elastic-create#^2.1.0",
+    "elastic-update": "usc-isi-digelements/elastic-update#^2.1.0",
+    "query-builder": "usc-isi-digelements/query-builder#^2.2.0"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^2.0.0",
